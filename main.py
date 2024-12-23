@@ -63,6 +63,11 @@ async def main():
         log.info("Got an image")
         colors = await extract_color_palette(image_data, 1)
 
+        if type(colors) == bool and colors == -1:
+            log.error("Cannot fetch colors and assign to HSL. Invalid image passed. Probably non-existent image?")
+            await asyncio.sleep(5)
+            continue
+
         log.info(f"Colors: {colors[0]}")
         h, s, l = await rgb_to_hsl(*colors[0])
 
@@ -74,27 +79,31 @@ async def main():
         await asyncio.sleep(5)
 
 async def extract_color_palette(image_path, num_colors=6):
-    # Open the image using Pillow
-    image = Image.open(image_path)
-    image = image.convert('RGB')  # Ensure the image is in RGB mode
+    try:
+        # Open the image using Pillow
+        image = Image.open(image_path)
+        image = image.convert('RGB')  # Ensure the image is in RGB mode
 
-    # Resize the image to reduce the number of pixels (optional)
-    image = image.resize((100, 100))
+        # Resize the image to reduce the number of pixels (optional)
+        image = image.resize((100, 100))
 
-    # Convert the image data to a numpy array
-    image_data = np.array(image)
+        # Convert the image data to a numpy array
+        image_data = np.array(image)
 
-    # Reshape the image data to a 2D array of pixels
-    pixels = image_data.reshape((-1, 3))
+        # Reshape the image data to a 2D array of pixels
+        pixels = image_data.reshape((-1, 3))
 
-    # Use KMeans to cluster the pixel colors
-    kmeans = KMeans(n_clusters=num_colors)
-    kmeans.fit(pixels)
+        # Use KMeans to cluster the pixel colors
+        kmeans = KMeans(n_clusters=num_colors)
+        kmeans.fit(pixels)
 
-    # Get the cluster centers (the colors)
-    colors = kmeans.cluster_centers_.astype(int)
+        # Get the cluster centers (the colors)
+        colors = kmeans.cluster_centers_.astype(int)
 
-    return colors
+        return colors
+    except Exception:
+        log.error("An error occurred when trying to read image.")
+        return -1
 
 async def get_album_image():
     global OLD_IMAGE_URL

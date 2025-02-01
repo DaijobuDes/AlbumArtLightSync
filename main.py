@@ -49,6 +49,9 @@ async def main():
     while (True):
         image_data = await get_album_image()
 
+        if image_data == -2:
+            continue
+
         if image_data == -1:
             log.info("Not playing anything")
             [await x.set().brightness(50).color_temperature(3450).send(x) for x in device]
@@ -106,33 +109,37 @@ async def extract_color_palette(image_path, num_colors=6):
         return -1
 
 async def get_album_image():
-    global OLD_IMAGE_URL
-    URL = f"https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={LAST_FM_USER}&api_key={LAST_FM_API_KEY}&limit=1&format=json"
+    try:
+        global OLD_IMAGE_URL
+        URL = f"https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={LAST_FM_USER}&api_key={LAST_FM_API_KEY}&limit=1&format=json"
 
-    data = r.get(URL).json()
+        data = r.get(URL).json()
 
-    # Now playing has @attr nowplaying true
-    is_playing = data['recenttracks']['track'][0].get('@attr', None)
+        # Now playing has @attr nowplaying true
+        is_playing = data['recenttracks']['track'][0].get('@attr', None)
 
-    if is_playing is None:
-        OLD_IMAGE_URL = ""
-        return -1
+        if is_playing is None:
+            OLD_IMAGE_URL = ""
+            return -1
 
-    log.debug(data['recenttracks']['track'][0]['image'][3])
-    has_image = data['recenttracks']['track'][0]['image'][3].get('#text', None)
+        log.debug(data['recenttracks']['track'][0]['image'][3])
+        has_image = data['recenttracks']['track'][0]['image'][3].get('#text', None)
 
-    if has_image is None:
-        return -1
+        if has_image is None:
+            return -1
 
-    # If same image URL
-    if OLD_IMAGE_URL == has_image:
-        return 1
+        # If same image URL
+        if OLD_IMAGE_URL == has_image:
+            return 1
 
-    OLD_IMAGE_URL = has_image
+        OLD_IMAGE_URL = has_image
 
-    image_data = r.get(has_image).content
+        image_data = r.get(has_image).content
 
-    return BytesIO(image_data)
+        return BytesIO(image_data)
+    except Exception:
+        log.error('Error fetching data from API')
+        return -2
 
 async def rgb_to_hsl(r, g, b):
     r /= 255.0

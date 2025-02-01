@@ -34,13 +34,13 @@ log.setLevel(logging.DEBUG)
 async def main():
     tapo_username = os.getenv("TAPO_USERNAME")
     tapo_password = os.getenv("TAPO_PASSWORD")
-    ip_address = os.getenv("TAPO_IP_ADDRESS")
+    ip_address = os.getenv("TAPO_IP_ADDRESS").split(',')
 
     client = ApiClient(tapo_username, tapo_password)
-    device = await client.l530(ip_address)
+    device = [await client.l530(x) for x in ip_address]
 
     log.info("Turning device on...")
-    await device.on()
+    [await x.on() for x in device]
 
     log.info("Waiting 2 seconds...")
     await asyncio.sleep(2)
@@ -51,7 +51,7 @@ async def main():
 
         if image_data == -1:
             log.info("Not playing anything")
-            await device.set().brightness(50).color_temperature(3450).send(device)
+            [await x.set().brightness(50).color_temperature(3450).send(x) for x in device]
             await asyncio.sleep(5)
             continue
 
@@ -74,7 +74,7 @@ async def main():
         log.info(f"HSL: {[h, s, l]}")
 
         log.info("Setting device params")
-        await device.set().brightness(l).hue_saturation(h, s).send(device)
+        [await x.set().brightness(l).hue_saturation(h, s).send(x) for x in device]
         log.info("Done. Sleeping for 5s")
         await asyncio.sleep(5)
 

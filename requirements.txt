@@ -19,4 +19,4 @@ scipy==1.14.1
 six==1.17.0
 tapo==0.8.0
 threadpoolctl==3.5.0
-urllib3==2.3.0
+urllib3==2.5.0
